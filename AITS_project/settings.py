@@ -30,7 +30,7 @@ SECRET_KEY = 'django-insecure-yto=31kte-xiyu4ilo45v+zcd^d8dpi%)lgi_&xq@+h3wqx9-s
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = False
 
-ALLOWED_HOSTS = ["academictrackingsystem-production2.up.railway.app"]
+ALLOWED_HOSTS = ["aits-backend-production.up.railway.app"]
 
 
 # Application definition
