@@ -429,26 +429,5 @@ class LecturerResolvedIssuesView(generics.ListAPIView):
                 fail_silently=False,
             )
 
-class UsersView(generics.ListAPIView):
-     serializer_class = UserSerializer
-     permission_classes = [IsAuthenticated]
- 
-     def get_queryset(self):
-         return User.objects.all()
-     
-class DebugRequestView(APIView):
-    """
-    A simple view that echoes back request data for debugging purposes.
-    """
-    permission_classes = [IsAuthenticated]
-    
-    def post(self, request, *args, **kwargs):
-        return Response({
-            'headers': dict(request.headers),
-            'method': request.method,
-            'path': request.path,
-            'data': request.data,
-            'query_params': request.query_params,
-            'user': request.user.username
-        }, status=status.HTTP_200_OK)
+
 
