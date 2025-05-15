@@ -429,3 +429,5 @@ class LecturerResolvedIssuesView(generics.ListAPIView):
                 fail_silently=False,
             )
 
+
+

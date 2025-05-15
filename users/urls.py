@@ -62,6 +62,6 @@ urlpatterns = [
     path('lecturer/pending_issues/', LecturerPendingIssuesView.as_view(), name='lecturer_pending_issues'),
     path('resolve-issue/', ResolveIssueView.as_view(), name='resolve_issue'),
     #path('lecturer/resolved-issues/', LecturerResolvedIssuesView.as_view(), name='lecturer_resolved_issues'),
-
+    
     path('users/', UsersView.as_view(), name='users'),
 ]
