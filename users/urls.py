@@ -19,8 +19,6 @@ from .views import( RegisterView,
                    LecturerAssignedIssuesView,
                    LecturerIssueDetailView,
                    LecturerPendingIssuesView,
-                   DebugRequestView,
-                   UsersView,
                    #LecturerResolvedIssueView
                    UsersView,
                    )
@@ -65,6 +63,5 @@ urlpatterns = [
     path('resolve-issue/', ResolveIssueView.as_view(), name='resolve_issue'),
     #path('lecturer/resolved-issues/', LecturerResolvedIssuesView.as_view(), name='lecturer_resolved_issues'),
     
-    path('api/debug-request/', DebugRequestView.as_view(), name='debug-request'),
     path('users/', UsersView.as_view(), name='users'),
 ]
