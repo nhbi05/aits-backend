@@ -94,20 +94,20 @@ DATABASES = {
         'ENGINE': 'django.db.backends.postgresql',
         'NAME': 'railway',
         'USER': 'postgres',
-        'PASSWORD': 'wPSswYHgVVdqERgcpLDaWhKSODPYrvxc',
-        'HOST': 'shinkansen.proxy.rlwy.net',
-        'PORT': '56092'
+        'PASSWORD': 'cyXlnnHBszalfBmIOTUGlfiZumSHsQwv',
+        'HOST': 'postgres.railway.internal',
+        'PORT': '5432'
     }
 }
 
 
-"""DATABASES = {
-    'default': {
-        'ENGINE': 'django.db.backends.sqlite3',
-        'NAME': BASE_DIR / 'db.sqlite3',
-    }
+#"""DATABASES = {
+ #   'default': {
+  #      'ENGINE': 'django.db.backends.sqlite3',
+   #     'NAME': BASE_DIR / 'db.sqlite3',
+    #}
 
-}"""
+#}"""
 
 
 
