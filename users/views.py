@@ -11,7 +11,7 @@ from django.utils.decorators import method_decorator
 from django.db.models import Q
 from django.utils import timezone
 from django.shortcuts import get_object_or_404
-from rest_framework.parsers import MultiPartParser, FormParser
+from rest_framework.parsers import JSONParser
 from rest_framework.decorators import api_view, parser_classes
 
 #from ACADEMIC_TRACKING_SYSTEM.backend.AITS_project.settings import DEFAULT_FROM_EMAIL
@@ -163,50 +163,83 @@ class RegistrarProfileView(generics.RetrieveUpdateAPIView):
         return self.request.user.registrar_profile
 
 
+from django.core.mail import send_mail
+from django.conf import settings
+from rest_framework import status
+from rest_framework.response import Response
+from rest_framework.views import APIView
+from rest_framework.permissions import IsAuthenticated
+from rest_framework.parsers import MultiPartParser, FormParser
+from .models import User, Issue
+from .serializers import IssueSerializer
+
 class SubmitIssueView(APIView):
     permission_classes = [IsAuthenticated]
+    parser_classes = [JSONParser]
     
-    def post(self, request):
+    def post(self, request, *args, **kwargs):
+        # Ensure the content type is application/json
+        if not request.content_type == 'application/json':
+            return Response(
+                {'error': 'Content-Type must be application/json'},
+                status=status.HTTP_415_UNSUPPORTED_MEDIA_TYPE
+            )
+            
         if request.user.role != 'student':
             return Response(
                 {'error': 'Only students can submit issues'},
                 status=status.HTTP_403_FORBIDDEN
             )
-        # Automatically include student details in the request data
-        request_data = request.data.copy()
-        student_profile = request.user.student_profile
-        request_data['first_name'] = request.user.first_name
-        request_data['last_name'] = request.user.last_name
-        request_data['registration_no'] = student_profile.registration_no # From student profile
-        request_data['student_no'] = student_profile.student_no  # From student profile
-
-        serializer = IssueSerializer(data=request.data, context={'request':request})
-        if serializer.is_valid():
-            serializer.save(submitted_by=request.user)
-            #Get the registrar's email
-            registrar= User.objects.filter(role='registrar').first()
+            
+        try:
+            # Get student profile
+            student_profile = request.user.student_profile
+            
+            # Create a mutable copy of request data
+            request_data = request.data.copy()
+            
+            # Add student details to the request data
+            request_data['first_name'] = request.user.first_name
+            request_data['last_name'] = request.user.last_name
+            request_data['registration_no'] = student_profile.registration_no
+            request_data['student_no'] = student_profile.student_no
+            request_data['programme'] = student_profile.programme
+            
+            # Pass the modified data to the serializer
+            serializer = IssueSerializer(data=request_data, context={'request': request})
+            
+            if serializer.is_valid():
+                # Save the issue with the current user as the submitter
+                issue = serializer.save(submitted_by=request.user)
+                
+                # Notify registrar
+                self._notify_registrar(request.user)
+                
+                return Response(serializer.data, status=status.HTTP_201_CREATED)
+                
+            return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+            
+        except Exception as e:
+            return Response(
+                {'error': str(e)},
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR
+            )
+    
+    def _notify_registrar(self, user):
+        """Helper method to send email notification to registrar"""
+        try:
+            registrar = User.objects.filter(role='registrar').first()
             if registrar and registrar.email:
-                #send email notification to registrar
                 send_mail(
-                    subject="New Issue Submitted",
-                    message=f"A new issue has been submitted by {request.user.first_name}",
-                    from_email= settings.DEFAULT_FROM_EMAIL,
+                    subject=f"New Issue Submitted by {user.get_full_name() or user.username}",
+                    message=f"A new issue has been submitted by {user.get_full_name() or user.username}",
+                    from_email=settings.DEFAULT_FROM_EMAIL,
                     recipient_list=[registrar.email],
-                    fail_silently=False,        
-
+                    fail_silently=True,
                 )
-            return Response(serializer.data, status=status.HTTP_201_CREATED)
-        print(serializer.errors)
-        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
-    @api_view(['POST'])
-    @parser_classes([MultiPartParser, FormParser])
-    def submit_issue(request):
-        serializer = IssueSerializer(data=request.data)
-        if serializer.is_valid():
-            # Add the current user as the submitter
-            issue = serializer.save(submitted_by=request.user)
-            return Response(serializer.data, status=status.HTTP_201_CREATED)
-        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+        except Exception as e:
+            # Log the error but don't fail the request
+            print(f"Failed to send email notification: {e}")
 
 class ResolveIssueView(APIView):
     permission_classes = [IsAuthenticated]
