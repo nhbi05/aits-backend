@@ -33,7 +33,7 @@ class LecturerProfileSerializer(serializers.ModelSerializer):
 class UserSerializer(serializers.ModelSerializer):
      class Meta:
          model = User
-         fields = '__all__'
+         fields = '_all_'
 
 # Serializer for the RegistrarProfile model
 class RegistrarProfileSerializer(serializers.ModelSerializer):
@@ -62,20 +62,50 @@ class RegisterSerializer(serializers.ModelSerializer):
         }
 
     def validate(self, data):
+        # Check for required fields
+        required_fields = ['username', 'email', 'password', 'password2', 'first_name', 'last_name', 'role']
+        missing_fields = [field for field in required_fields if field not in data or not data[field]]
+        
+        if missing_fields:
+            raise serializers.ValidationError({
+                'required_fields': f'Missing required fields: {", ".join(missing_fields)}'
+            })
+            
         if data['password'] != data['password2']:
-            raise serializers.ValidationError({'password': 'Passwords do not match'})
+            raise serializers.ValidationError({
+                'password': 'Passwords do not match',
+                'password2': 'Passwords do not match'
+            })
         
         role = data.get('role')
+        valid_roles = ['student', 'lecturer', 'registrar']
+        if role not in valid_roles:
+            raise serializers.ValidationError({
+                'role': f'Invalid role. Must be one of: {", ".join(valid_roles)}'
+            })
 
-        # Make profile data required based on role
-        if role == 'student' and 'student_profile' not in data:
-            raise serializers.ValidationError({'student_profile': 'Student profile data is required for students'})
+        # Validate profile data based on role
+        profile_errors = {}
+        if role == 'student':
+            if 'student_profile' not in data:
+                profile_errors['student_profile'] = 'Student profile data is required for students'
+            elif data['student_profile']:
+                student_profile = data['student_profile']
+                student_required = ['registration_no', 'programme', 'student_no']
+                missing_student = [field for field in student_required if field not in student_profile or not student_profile[field]]
+                if missing_student:
+                    profile_errors['student_profile'] = f'Missing required fields in student profile: {", ".join(missing_student)}'
         
-        if role == 'lecturer' and 'lecturer_profile' not in data:
-            raise serializers.ValidationError({'lecturer_profile': 'Lecturer profile data is required for lecturers'})
+        elif role == 'lecturer':
+            if 'lecturer_profile' not in data:
+                profile_errors['lecturer_profile'] = 'Lecturer profile data is required for lecturers'
+            
+        elif role == 'registrar':
+            if 'registrar_profile' not in data:
+                profile_errors['registrar_profile'] = 'Registrar profile data is required for registrars'
         
-        if role == 'registrar' and 'registrar_profile' not in data:
-            raise serializers.ValidationError({'registrar_profile': 'Registrar profile data is required for registrars'})
+        if profile_errors:
+            raise serializers.ValidationError(profile_errors)
             
         return data
 
@@ -134,4 +164,3 @@ class IssueSerializer(serializers.ModelSerializer):
             'status', 'submitted_by', 'created_at', 'resolved_at', 
             'first_name', 'last_name', 'registration_no', 'student_no',"programme"
         ]  # These fields CANNOT be modified manually
-   
