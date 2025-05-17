@@ -103,7 +103,6 @@ class Issue(models.Model):
         ('Semester 1', 'Semester 1'),
         ('Semester 2', 'Semester 2'),
     ]
-    issue_id = models.CharField(max_length=20, unique=True, editable=False)
     student_no = models.CharField(max_length=20)
     registration_no = models.CharField(max_length=20)
     category = models.CharField(max_length=100, choices=CATEGORY_CHOICES)
@@ -120,16 +119,5 @@ class Issue(models.Model):
     title = models.CharField(max_length=255)
     attachments = models.FileField(upload_to="issue_attachments/", blank=True, null=True)
 
-    def __str__(self):
+    def _str_(self):
         return f"Issue {self.id} - {self.category} ({self.status})"
-
-    def save(self, *args, **kwargs):
-        if not self.issue_id:
-            last_issue = Issue.objects.order_by('-id').first()  # checks last issue once created
-            if last_issue and last_issue.issue_id:
-                last_number = int(last_issue.issue_id.replace('ISS', ''))
-                new_number = last_number + 1
-            else:
-                new_number = 1
-            self.issue_id = f'ISS{new_number:04d}'
-        super().save(*args, **kwargs)
