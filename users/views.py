@@ -28,33 +28,77 @@ from django.utils import timezone
 User = get_user_model()
 class RegisterView(APIView):
     def post(self, request):
-        serializer = RegisterSerializer(data=request.data)
-        print(request.data)
-        if serializer.is_valid():
+        
+        
+        try:
+            serializer = RegisterSerializer(data=request.data)
+            
+            # Validate the data
+            if not serializer.is_valid():
+                # Log validation errors for debugging
+                print("Validation errors:", serializer.errors)
+                
+                # Format a more user-friendly error response
+                error_response = {
+                    'status': 'error',
+                    'message': 'Registration failed. Please correct the errors below.',
+                    'errors': serializer.errors
+                }
+                return Response(error_response, status=status.HTTP_400_BAD_REQUEST)
+        
+        
+            # Save the user if validation passes
             user = serializer.save()
             
-            # Construct email
-            subject = 'Welcome to the Academic Issue Tracking System'
-            if user.role == 'student':
-                message = f"Hello {user.first_name},\n\nYou have successfully registered into the Academic Issue Tracking System as a student."
-            elif user.role == 'lecturer':
-                message = f"Hello {user.first_name},\n\nYou have successfully registered into the Academic Issue Tracking System as a lecturer."
-            elif user.role == 'registrar':
-                message = f"Hello {user.first_name},\n\nYou have successfully registered into the Academic Issue Tracking System as a registrar."
-            # Send email
-            send_mail(
-                subject,
-                message,
-                settings.DEFAULT_FROM_EMAIL,
-                [user.email],
-                fail_silently=False,
+            # Prepare welcome email
+            role_display = user.role.capitalize()
+            subject = f'Welcome to the Academic Issue Tracking System - {role_display} Registration'
+            message = (
+                f"Hello {user.first_name},\n\n"
+                f"You have successfully registered into the Academic Issue Tracking System as a {user.role}.\n\n"
+                "Thank you for joining us!"
             )
-            return Response(
-                {"message": "User created successfully", "user": serializer.data}, 
-                status=status.HTTP_201_CREATED
-            )
-        print(serializer.errors)
-        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+            
+            # Send welcome email
+            try:
+                send_mail(
+                    subject,
+                    message,
+                    settings.DEFAULT_FROM_EMAIL,
+                    [user.email],
+                    fail_silently=False,
+                )
+            except Exception as e:
+                print(f"Failed to send welcome email: {str(e)}")
+                # Continue with registration even if email fails
+            
+            # Prepare success response
+            response_data = {
+                'status': 'success',
+                'message': f'{role_display} account created successfully',
+                'user': {
+                    'id': user.id,
+                    'username': user.username,
+                    'email': user.email,
+                    'role': user.role,
+                    'first_name': user.first_name,
+                    'last_name': user.last_name
+                }
+            }
+            
+            return Response(response_data, status=status.HTTP_201_CREATED)
+            
+        except Exception as e:
+            # Log the unexpected error
+            print(f"Unexpected error during registration: {str(e)}")
+            
+            # Return a generic error response
+            error_response = {
+                'status': 'error',
+                'message': 'An unexpected error occurred during registration. Please try again later.',
+                'detail': str(e)
+            }
+            return Response(error_response, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
 class LoginView(APIView):
     def post(self, request):
@@ -93,7 +137,7 @@ class LoginView(APIView):
                 return Response({'error': 'Invalid password'}, status=status.HTTP_400_BAD_REQUEST)
             except User.DoesNotExist:
                 return Response({'error': 'User not found'}, status=status.HTTP_400_BAD_REQUEST)
-        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+        # return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
     
 class StudentProfileView(generics.RetrieveUpdateAPIView):
     serializer_class = StudentProfileSerializer
@@ -277,7 +321,7 @@ class LecturerSearchView(generics.ListAPIView):
         matching_lecturers = User.objects.filter(
             role='lecturer'
         ).filter(
-            Q(first_name__icontains=query) | Q(last_name__icontains=query)
+            Q(first_name_icontains=query) | Q(last_name_icontains=query)
         )
 
         # Return the related LecturerProfile objects
@@ -428,6 +472,3 @@ class LecturerResolvedIssuesView(generics.ListAPIView):
                 recipient_list=[lecturer.email],
                 fail_silently=False,
             )
-
-
-
