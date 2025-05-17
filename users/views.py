@@ -321,7 +321,7 @@ class LecturerSearchView(generics.ListAPIView):
         matching_lecturers = User.objects.filter(
             role='lecturer'
         ).filter(
-            Q(first_name_icontains=query) | Q(last_name_icontains=query)
+            Q(first_name__icontains=query) | Q(last_name__icontains=query)
         )
 
         # Return the related LecturerProfile objects

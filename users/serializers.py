@@ -33,7 +33,7 @@ class LecturerProfileSerializer(serializers.ModelSerializer):
 class UserSerializer(serializers.ModelSerializer):
      class Meta:
          model = User
-         fields = '_all_'
+         fields = '__all__'
 
 # Serializer for the RegistrarProfile model
 class RegistrarProfileSerializer(serializers.ModelSerializer):
@@ -128,8 +128,7 @@ class RegisterSerializer(serializers.ModelSerializer):
             # For lecturer, we need to handle the department
             department_name = lecturer_profile_data.pop('department', None)
             if department_name:
-                department = Department.objects.get(name=department_name)
-                LecturerProfile.objects.create(user=user, department=department, **lecturer_profile_data)
+                LecturerProfile.objects.create(user=user, department=department_name, **lecturer_profile_data)
             else:
                 LecturerProfile.objects.create(user=user, **lecturer_profile_data)
         elif user.role == 'registrar' and registrar_profile_data:
