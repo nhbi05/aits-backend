@@ -84,6 +84,7 @@ class Issue(models.Model):
         ('in_progress', 'In Progress'),
         ('resolved', 'Resolved'),
     ]
+    issue_id = models.CharField(max_length=20, unique=True, editable=False
     # the choices for the issue category
     CATEGORY_CHOICES = [
         ('missing_marks', 'Missing Marks'),
@@ -121,3 +122,15 @@ class Issue(models.Model):
 
     def _str_(self):
         return f"Issue {self.id} - {self.category} ({self.status})"
+
+    def save(self, *args, **kwargs):
+        if not self.issue_id:
+            # Generate a unique issue ID (e.g., 'ISSUE-0001')
+            last_issue = Issue.objects.order_by('-id').first()
+            if last_issue and last_issue.issue_id:
+                last_num = int(last_issue.issue_id.split('-')[-1])
+                new_num = last_num + 1
+            else:
+                new_num = 1
+            self.issue_id = f'ISSUE-{new_num:04d}'
+        super().save(*args, **kwargs)
